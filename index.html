@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Disturbance</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            background-color: black;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden; /* Para evitar barras de rolagem indesejadas */
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #555;
+            background-color: #333;
+            color: white;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 20px;
+            background-color: red;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: darkred;
+        }
+
+        #title {
+            font-family: 'Creepster', cursive; /* Fonte assustadora */
+            color: red;
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        #play-button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #alert-text {
+            font-size: 0.8em;
+            margin-top: 5px;
+            color: red;
+        }
+
+        #permission-hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        #permission-text {
+            color: white;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        #chat-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .message-left {
+            background-color: #555;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            align-self: flex-start;
+            max-width: 80%;
+            word-break: break-word;
+        }
+
+        #input-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #222;
+            padding: 10px;
+            display: flex;
+        }
+
+        #message-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #555;
+            background-color: #333;
+            color: white;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        #send-button {
+            background-color: #777;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: not-allowed;
+        }
+
+        #error-message {
+            color: red;
+            margin-top: 10px;
+        }
+
+        #camera-feed-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            display: none; /* Inicialmente escondido */
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+
+        #camera-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(100%);
+        }
+
+        #camera-text {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: red;
+            font-size: 2em;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+
+        .glitch {
+            animation: glitch-anim 0.5s infinite steps(2);
+        }
+
+        @keyframes glitch-anim {
+            0% { transform: translate(0); }
+            20% { transform: translate(-5px, 5px); }
+            40% { transform: translate(5px, -5px); }
+            60% { transform: translate(-3px, 3px); }
+            80% { transform: translate(3px, -3px); }
+            100% { transform: translate(0); }
+        }
+
+        #end-message-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 30;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+
+        #end-message-text {
+            font-family: 'Creepster', cursive;
+            color: white;
+            font-size: 3em;
+        }
+
+        #back-to-menu-button {
+            margin-top: 20px;
+        }
+
+        #warning-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5em;
+            text-align: center;
+            padding: 20px;
+            z-index: 40;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="name-input-container">
+        <input type="text" id="player-name" placeholder="Digite seu nome">
+        <button id="submit-name-button">Enviar</button>
+    </div>
+
+    <div id="title-screen" style="display: none;">
+        <div id="title">Disturbance</div>
+        <div id="play-button-container">
+            <button id="play-button">JOGAR</button>
+            <p id="alert-text">🚨⚠️ - Alerta! Ao jogar, sua vida estará em jogo. - ⚠️🚨</p>
+        </div>
+    </div>
+
+    <div id="permission-hud" style="display: none;">
+        <p id="permission-text">Para jogar o jogo e a imersão ser causada, precisamos que você autorize a permissão que irá aparecer ao clicar no botão abaixo.</p>
+        <button id="request-permission-button">Permissão</button>
+    </div>
+
+    <div id="chat-container" style="display: none;">
+        <div id="messages"></div>
+        <div id="input-container">
+            <input type="text" id="message-input" placeholder="Escreva uma mensagem...">
+            <button id="send-button" disabled>Enviar</button>
+        </div>
+        <p id="error-message" style="display: none;">Não foi possível enviar, tente novamente.</p>
+    </div>
+
+    <div id="camera-feed-container">
+        <video id="camera-feed" autoplay playsinline></video>
+        <div id="camera-text"></div>
+    </div>
+
+    <div id="end-message-container">
+        <p id="end-message-text"></p>
+        <button id="back-to-menu-button">Voltar para o menu</button>
+    </div>
+
+    <div id="warning-message"></div>
+
+    <audio id="error-sound" src="error.wav"></audio>
+    <audio id="glass-break-sound" src="glass_break.wav"></audio>
+    <audio id="microphone-feedback-sound" src="microphone_feedback.wav"></audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const nameInputContainer = document.getElementById('name-input-container');
+            const playerNameInput = document.getElementById('player-name');
+            const submitNameButton = document.getElementById('submit-name-button');
+            const titleScreen = document.getElementById('title-screen');
+            const playButton = document.getElementById('play-button');
+            const permissionHud = document.getElementById('permission-hud');
+            const requestPermissionButton = document.getElementById('request-permission-button');
+            const chatContainer = document.getElementById('chat-container');
+            const messagesContainer = document.getElementById('messages');
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const errorMessage = document.getElementById('error-message');
+            const cameraFeedContainer = document.getElementById('camera-feed-container');
+            const cameraFeed = document.getElementById('camera-feed');
+            const cameraTextElement = document.getElementById('camera-text');
+            const endMessageContainer = document.getElementById('end-message-container');
+            const endMessageText = document.getElementById('end-message-text');
+            const backToMenuButton = document.getElementById('back-to-menu-button');
+            const warningMessageElement = document.getElementById('warning-message');
+            const errorSound = document.getElementById('error-sound');
+            const glassBreakSound = document.getElementById('glass-break-sound');
+            const microphoneFeedbackSound = document.getElementById('microphone-feedback-sound');
+
+            let playerName = "";
+            let cameraStream = null;
+            let microphoneStream = null;
+            let recognition;
+            let isRepeating = false;
+
+            submitNameButton.addEventListener('click', () => {
+                playerName = playerNameInput.value.trim();
+                if (playerName) {
+                    nameInputContainer.style.display = 'none';
+                    titleScreen.style.display = 'flex';
+                } else {
+                    alert('Por favor, digite seu nome.');
+                }
+            });
+
+            playButton.addEventListener('click', () => {
+                titleScreen.style.display = 'none';
+                permissionHud.style.display = 'flex';
+            });
+
+            requestPermissionButton.addEventListener('click', async () => {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                    cameraStream = stream;
+                    const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    microphoneStream = audioStream;
+                    permissionHud.style.display = 'none';
+                    chatContainer.style.display = 'flex';
+                    startChatSequence();
+                } catch (error) {
+                    console.error('Erro ao acessar câmera ou microfone:', error);
+                    permissionHud.style.display = 'none';
+                    document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; color: white; font-size: 2em; text-align: center;">Autorização negada. Impossível jogar.</div>';
+                }
+            });
+
+            function displayMessage(text, isLeft) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message-' + (isLeft ? 'left' : 'right'));
+                messageDiv.textContent = text.replace('{nome que o jogador colocou no início do jogo}', playerName);
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                return messageDiv;
+            }
+
+            const chatMessages = [
+                "Ei, eu te achei.",
+                "Você deve ser {nome que o jogador colocou no início do jogo}, eu sei.",
+                "Não me questione sobre meu nome.",
+                "Você tem ideia do motivo de eu ter vindo falar com você?",
+                "Você se atrasou novamente.",
+                "Olha, não me leve a mal, mas... Clique na mensagem abaixo ⬇️.",
+                "Você leu tudo que enviei? Se sim, clique aqui, nesta mensagem."
+            ];
+
+            let messageIndex = 0;
+            let chatInterval;
+
+            function startChatSequence() {
+                chatInterval = setInterval(() => {
+                    if (messageIndex < chatMessages.length) {
+                        const messageElement = displayMessage(chatMessages[messageIndex], true);
+                        if (messageIndex === chatMessages.length - 1) {
+                            messageElement.style.cursor = 'pointer';
+                            messageElement.addEventListener('click', () => {
+                                clearInterval(chatInterval);
+                                displayMessage("Eu sei quem é você.", false);
+                                setTimeout(triggerCameraSequence, 7000);
+                            });
+                        }
+                        messageIndex++;
+                    } else {
+                        clearInterval(chatInterval);
+                    }
+                }, 3000);
+            }
+
+            async function triggerCameraSequence() {
+                chatContainer.style.display = 'none';
+                cameraFeedContainer.style.display = 'flex';
+                cameraFeed.srcObject = cameraStream;
+
+                setTimeout(() => {
+                    cameraTextElement.textContent = playerName + "?";
+                    cameraTextElement.style.opacity = 1;
+                }, 5000);
+
+                setTimeout(() => {
+                    startGlitchEffect();
+                }, 10000);
+            }
+
+            function startGlitchEffect() {
+                let glitchInterval = setInterval(() => {
+                    cameraFeedContainer.classList.toggle('glitch');
+                    if (Math.random() < 0.2) {
+                        microphoneFeedbackSound.play();
+                    }
+                }, 200);
+
+                setTimeout(() => {
+                    clearInterval(glitchInterval);
+                    cameraFeedContainer.classList.remove('glitch');
+                    startVoiceListening();
+                }, 30000);
+            }
+
+            function startVoiceListening() {
+                if ('webkitSpeechRecognition' in window) {
+                    recognition = new webkitSpeechRecognition();
+                    recognition.continuous = false;
+                    recognition.interimResults = false;
+                    recognition.lang = 'pt-BR';
+
+                    recognition.onstart = () => {
+                        isRepeating = true;
+                    };
+
+                    recognition.onresult = (event) => {
+                        const spokenText = event.results[0][0].transcript;
+                        setTimeout(() => {
+                            if (isRepeating) {
+                                speak(spokenText);
+                            }
+                        }, 3000);
+                    };
+
+                    recognition.onend = () => {
+                        isRepeating = false;
+                        setTimeout(endGameSequence, 60000); // 1 minuto após parar de falar
+                    };
+
+                    recognition.start();
+                } else {
+                    alert('Seu navegador não suporta a API de reconhecimento de voz.');
+                    setTimeout(endGameSequence, 60000);
+                }
+            }
+
+            function speak(text) {
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    speechSynthesis.speak(utterance);
+                } else {
+                    alert('Seu navegador não suporta a API de síntese de voz.');
+                }
+            }
+
+            function stopCameraAndMicrophone() {
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                    cameraStream = null;
+                }
+                if (microphoneStream) {
+                    microphoneStream.getTracks().forEach(track => track.stop());
+                    microphoneStream = null;
+                }
+            }
+
+            function endGameSequence() {
+                stopCameraAndMicrophone();
+                cameraFeedContainer.style.display = 'none';
+                warningMessageElement.textContent = 'Alguém foi detectado dentro de sua casa, se estiver sozinho ou com 3 pessoas, por favor, tranque suas portas e janelas imediatamente.';
+                warningMessageElement.style.display = 'flex';
+
+                setTimeout(() => {
+                    warningMessageElement.style.display = 'none';
+                    chatContainer.style.display = 'flex';
+                    displayMessage("Eu tentei te avisar.", true);
+                    glassBreakSound.play();
+                    document.body.style.backgroundColor = 'black';
+                    setTimeout(() => {
+                        chatContainer.style.display = 'none';
+                        endMessageText.textContent = 'Continua...';
+                        endMessageContainer.style.display = 'flex';
+                        setTimeout(() => {
+                            endMessageContainer.style.opacity = 1;
+                            setTimeout(() => {
+                                endMessageContainer.style.opacity = 0;
+                                setTimeout(() => {
+                                    endMessageContainer.style.display = 'none';
+                                    // Voltar para o menu (recarregar a página para simplificar)
+                                    const backButton = document.createElement('button');
+                                    backButton.id = 'back-to-menu-button';
+                                    backButton.textContent = 'Voltar para o menu';
+                                    backButton.style.position = 'fixed';
+                                    backButton.style.bottom = '20px';
+                                    backButton.style.right = '20px';
+                                    backButton.style.padding = '15px 30px';
+                                    backButton.style.fontSize = '20px';
+                                    backButton.style.backgroundColor = 'red';
+                                    backButton.style.color = 'white';
+                                    backButton.style.border = 'none';
+                                    backButton.style.borderRadius = '8px';
+                                    backButton.style.cursor = 'pointer';
+                                    backButton.style.transition = 'background-color 0.3s ease';
+                                    backButton.addEventListener('mouseover', () => backButton.style.backgroundColor = 'darkred');
+                                    backButton.addEventListener('mouseout', () => backButton.style.backgroundColor = 'red');
+                                    document.body.appendChild(backButton);
+
+                                    backButton.addEventListener('click', () => {
+                                        window.location.reload();
+                                    });
+
+                                }, 5000);
+                            }, 5000);
+                        }, 3000);
+                    }, 3000);
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+</html>
